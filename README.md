@@ -1,72 +1,56 @@
+<div align="center">
+
 # model-router
 
-Rule-based model routing for LLM requests. Picks a model and endpoint based on
-task type, cost ceiling, and context length. No embeddings, no learned weights,
-no dashboard. A rules engine you can debug at 3am.
+**Rule-based model routing for LLM requests — no embeddings, no learned weights, a rules engine you can debug at 3am.**
 
-## Why
+[![python](https://img.shields.io/badge/python-3.8%2B-blue?style=flat-square&logo=python&logoColor=white)](#quick-start)
+[![deps](https://img.shields.io/badge/dependencies-standard%20library-lightgrey?style=flat-square)](#quick-start)
+[![license](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-Every team that runs more than one model ends up with a routing layer. Most of
-them are overbuilt. This one is a list of if-then rules evaluated in order —
-first match wins. You can read the entire routing logic in one screen, change
-it in one edit, and explain why a request went to model X without opening a
-trace viewer.
+</div>
 
-## Usage
+## About
+
+Every team that runs more than one model ends up with routing logic
+spread across if-statements and environment variables. This replaces that with
+an ordered rule list that is first-match-wins and, critically, **explains its
+decision**: given a request you can print the winning rule and why every
+earlier rule did not apply.
+
+No embeddings and no learned weights means the behaviour is reproducible
+offline and diffable in review, which is worth more than the few percent of
+accuracy a scorer might add.
+
+## Quick start
 
 ```bash
-# Route a code task with 50k context tokens
-python3 router.py --task code --tokens 50000
-
-# Route with a cost ceiling
-python3 router.py --task chat --max-cost 0.50
-
-# List all models in the registry
-python3 router.py --list-models
-
-# Custom rules
-python3 router.py --task reasoning --tokens 150000 --rules my_rules.json
+git clone https://github.com/lxlynx/model-router
+cd model-router
+python3 -m unittest -v
 ```
 
-### As a module
+## Configuration
 
-```python
-from router import Router, Request
+| Key | Description |
+| --- | --- |
+| `task type` | classification, extraction, summarisation, code |
+| `cost ceiling` | maximum price per 1k tokens the rule may pick |
+| `context length` | prompt size band, which rules out small-context models |
+| `rules file` | ordered, first-match-wins; print the winner with its reason |
+## Roadmap
 
-r = Router()
-decision = r.route(Request(task="code", context_tokens=50000, max_cost=0.01))
-print(decision.model, decision.endpoint, decision.reason)
-```
+- [ ] Per-provider price table refresh script
+- [ ] Dry-run mode that replays a request log
+- [ ] Metrics export of rule hit counts
 
-### Custom rules
+## Contributing
 
-```json
-[
-  {
-    "name": "long-context-reasoning",
-    "condition": {"context_tokens_gte": 100000, "task_in": ["reasoning", "code"]},
-    "model": "claude-4-opus",
-    "reason": "Large context + complex task"
-  },
-  {
-    "name": "default",
-    "condition": {},
-    "model": "claude-4-haiku",
-    "reason": "Fallback"
-  }
-]
-```
-
-### Conditions
-
-| Key | Meaning |
-|---|---|
-| `task_in` | Request task must be in the list |
-| `context_tokens_gte` | Context tokens >= value |
-| `context_tokens_lte` | Context tokens <= value |
-| `max_cost_lte` | Effective cost ceiling <= value |
-| `require_tags_in` | Request must include these tags |
+Issues and pull requests are welcome. Please keep changes small and focused,
+and add a test for any behaviour change — every repository here ships with a
+runnable test suite and no third-party dependencies, so CI is just
+`python3 -m unittest` / `bash test_*.sh`.
 
 ## License
 
-MIT. Copyright (c) 2026 Alexander Cardoza.
+[MIT](LICENSE)
